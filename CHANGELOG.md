@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Breaking:** `WatcherRegistry::remove_watcher` now returns `ContractError::WatcherNotFound` when the address is not registered, instead of `Ok(())` (#231).
+- `WatcherRegistry::register_watcher` enforces `MAX_WATCHERS` (100) and returns the new `ContractError::WatcherLimitExceeded` (#232). See `docs/watcher-registry.md`.
+- `clear_all_watchers` resets the watcher count to 0; covered by a unit test (#230).
+- Documented the decision to keep the Vec-based `is_authorized` in `docs/ADR-001-watcher-authorization-storage.md` (#233).
 - **Breaking change:** `AlertRegistry::get_per_owner_alert_limit` now returns
 ` Option<u32>` instead of `u32`. It returns `None` when no limit has been set,
 `Some(0)` when the admin explicitly configured an unlimited limit, and

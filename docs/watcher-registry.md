@@ -214,3 +214,12 @@ get_admins(env) -> Result<Vec<Address>, ContractError>
 ```
 
 Returns the admin set. Read-only.
+
+## Watcher limit
+
+At most `MAX_WATCHERS` (100) watchers may be registered at once. `register_watcher`
+returns `ContractError::WatcherLimitExceeded` (6) when the registry is full and
+the address is not already registered (re-registering stays an idempotent no-op).
+
+`remove_watcher` returns `ContractError::WatcherNotFound` (5) if the address is
+not registered. `clear_all_watchers` resets `get_watcher_count` to 0.

@@ -8,6 +8,9 @@ use soroban_sdk::{
 /// At ~5s per ledger this is roughly 30 days.
 const DEFAULT_TTL: u32 = 518_400;
 
+/// Maximum number of watchers that may be registered at once.
+pub const MAX_WATCHERS: u32 = 100;
+
 // ── Errors ────────────────────────────────────────────────────────────────────
 
 #[contracterror]
@@ -21,6 +24,8 @@ pub enum ContractError {
     LastAdmin = 4,
     /// Returned when the specified watcher is not currently registered.
     WatcherNotFound = 5,
+    /// Returned when registering a watcher would exceed [`MAX_WATCHERS`].
+    WatcherLimitExceeded = 6,
 }
 
 // ── Storage keys ─────────────────────────────────────────────────────────────
@@ -214,6 +219,9 @@ impl WatcherRegistry {
                 return Ok(()); // already registered, idempotent
             }
         }
+        if watchers.len() >= MAX_WATCHERS {
+            return Err(ContractError::WatcherLimitExceeded);
+        }
         watchers.push_back(watcher.clone());
         env.storage().instance().set(&DataKey::Watchers, &watchers);
         Self::extend_instance_ttl(&env);
@@ -230,8 +238,8 @@ impl WatcherRegistry {
 
     /// Remove (deauthorize) a watcher (any admin may call this).
     ///
-    /// If the watcher address is not currently registered this is a no-op —
-    /// the call succeeds and no event is emitted.
+    /// Returns [`ContractError::WatcherNotFound`] if the watcher address is not
+    /// currently registered; no state change or event occurs in that case.
     ///
     /// # Auth
     /// Requires a valid Stellar auth signature from `admin`, who must be an
@@ -261,20 +269,17 @@ impl WatcherRegistry {
                 updated.push_back(w);
             }
         }
+        if !removed {
+            return Err(ContractError::WatcherNotFound);
+        }
         env.storage().instance().set(&DataKey::Watchers, &updated);
         Self::extend_instance_ttl(&env);
 
-        // Only emit the event and decrement the counter when the watcher was
-        // actually present.  Callers that need to detect deauthorization must
-        // subscribe to this event — it is the authoritative signal that a
-        // watcher's trust has been revoked.
-        if removed {
-            Self::decrement_watcher_count(&env);
-            env.events().publish(
-                (symbol_short!("watcher"), symbol_short!("remove")),
-                watcher,
-            );
-        }
+        Self::decrement_watcher_count(&env);
+        env.events().publish(
+            (symbol_short!("watcher"), symbol_short!("remove")),
+            watcher,
+        );
 
         Ok(())
     }
@@ -1056,18 +1061,42 @@ mod tests {
         assert_eq!(emitted_watcher, watcher);
     }
 
-    // 24. remove_watcher on a non-registered address is a no-op — no event emitted
+    // 24. remove_watcher on a non-registered address returns WatcherNotFound, no event
     #[test]
     fn test_remove_watcher_not_registered_no_event() {
         let (env, admin, client) = setup();
         let stranger = Address::generate(&env);
 
-        // stranger was never registered — remove should succeed silently
-        client.remove_watcher(&admin, &stranger);
+        assert_eq!(
+            client.try_remove_watcher(&admin, &stranger),
+            Err(Ok(ContractError::WatcherNotFound))
+        );
+        assert_eq!(env.events().all().len(), 0);
+        assert!(!client.is_authorized(&stranger));
+    }
 
-        // Only the admin.init event from setup() should exist; no watcher.remove
-        let events = env.events().all();
-        assert_eq!(events.len(), 0, "no watcher.remove event expected for unregistered watcher");
+    #[test]
+    fn test_clear_all_watchers_resets_count() {
+        let (env, admin, client) = setup();
+        for _ in 0..3 {
+            client.register_watcher(&admin, &Address::generate(&env));
+        }
+        assert_eq!(client.get_watcher_count(), 3);
+        client.clear_all_watchers(&admin);
+        assert_eq!(client.get_watcher_count(), 0);
+    }
+
+    #[test]
+    fn test_register_watcher_limit_enforced() {
+        let (env, admin, client) = setup();
+        for _ in 0..MAX_WATCHERS {
+            client.register_watcher(&admin, &Address::generate(&env));
+        }
+        assert_eq!(client.get_watcher_count(), MAX_WATCHERS);
+        assert_eq!(
+            client.try_register_watcher(&admin, &Address::generate(&env)),
+            Err(Ok(ContractError::WatcherLimitExceeded))
+        );
     }
 
     // 25. get_watcher_count decrements correctly after remove_watcher
