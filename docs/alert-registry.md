@@ -560,6 +560,22 @@ index that still exist, so an archived alert is not counted.
 
 `get_alert_count_for_contract` is not in the compiled contract and is not documented here.
 
+### `add_admin` / `remove_admin` / `get_admins`
+Multi-admin management. Any admin may add or remove another; removing the last admin fails with `LastAdmin`.
+Events: `("admin", "add")`, `("admin", "remove")`. `transfer_admin` is deprecated (replaces the whole set).
+
+### `get_alerts_updated_since`
+`get_alerts_updated_since(target_contract, since, offset, limit) -> Vec<AlertConfig>` returns alerts with
+`updated_at >= since`, paginated. **O(n)** in the size of the contract index (full scan and filter).
+
+### `transfer_alert_ownership`
+`transfer_alert_ownership(owner, config_id, new_owner)` moves an alert between owners, updating both owner
+indexes and `updated_at`. Fails with `OwnerAlertLimitExceeded` if the new owner is at their limit.
+Emits `("alert", "transfer")`.
+
+### Tags: `register_alert(..., tags)` / `update_tags`
+`AlertConfig.tags: Option<Vec<String>>` — at most 10 tags of at most 32 bytes each (`TooManyTags`, `TagTooLong`).
+`update_tags(caller, config_id, tags)` replaces them; emits `("alert", "tags")`.
 ---
 
 ### `batch_register_alerts`

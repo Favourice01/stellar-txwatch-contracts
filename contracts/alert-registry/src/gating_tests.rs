@@ -35,6 +35,7 @@ fn setup() -> (Env, AlertRegistryClient<'static>, watcher_registry::WatcherRegis
         &String::from_str(&env, "alert"),
         &String::from_str(&env, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
         &vec![&env, String::from_str(&env, "rule:transfer")],
+        &None,
     );
     (env, alert, watcher, admin)
 }
@@ -52,7 +53,7 @@ fn gate_not_set_lets_any_address_read() {
 fn gate_set_and_registered_watcher_can_read() {
     let (env, alert, watcher, admin) = setup();
     let watcher_addr = Address::generate(&env);
-    watcher.register_watcher(&admin, &watcher_addr);
+    watcher.register_watcher(&admin, &watcher_addr, &None);
     alert.set_watcher_registry(&admin, &watcher.address);
 
     let target = Address::generate(&env);
@@ -75,7 +76,7 @@ fn gate_set_and_unregistered_caller_is_refused() {
 fn removing_a_watcher_mid_test_revokes_read_access() {
     let (env, alert, watcher, admin) = setup();
     let watcher_addr = Address::generate(&env);
-    watcher.register_watcher(&admin, &watcher_addr);
+    watcher.register_watcher(&admin, &watcher_addr, &None);
     alert.set_watcher_registry(&admin, &watcher.address);
 
     let target = Address::generate(&env);

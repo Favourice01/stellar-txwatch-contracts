@@ -150,3 +150,12 @@ try {
   console.error("get_watcher_count failed:", err);
 }
 ```
+
+## Pause, batch registration and expiry
+
+| Method | Description |
+| --- | --- |
+| `register_watcher({ admin, watcher, expires_at? })` | Register a watcher, optionally expiring at a ledger timestamp |
+| `batch_register_watchers({ admin, watchers })` | Register up to 20 watchers; returns the number newly added |
+| `renew_watcher({ admin, watcher, new_expiry? })` | Extend (or clear) a watcher's expiry |
+| `set_paused({ admin, paused })` / `is_paused()` | Circuit breaker for mutating calls |

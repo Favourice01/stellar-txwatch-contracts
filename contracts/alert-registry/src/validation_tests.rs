@@ -41,7 +41,7 @@ fn register_alert_empty_rules_returns_empty_rules_error() {
         &target,
         &str(&env, "Alert"),
         &hash64(&env),
-        &vec![&env], // empty rules
+        &vec![&env], // empty rules, &None
     );
 
     assert_eq!(result, Err(Ok(ContractError::EmptyRules)));
@@ -61,6 +61,7 @@ fn update_alert_empty_rules_returns_empty_rules_error() {
         &str(&env, "Alert"),
         &hash64(&env),
         &vec![&env, str(&env, "rule:transfer")],
+        &None,
     );
 
     // Now try to update with empty rules
@@ -93,6 +94,7 @@ fn register_alert_duplicate_rules_returns_duplicate_rule_error() {
             str(&env, "rule:transfer"),
             str(&env, "rule:transfer"), // duplicate
         ],
+        &None,
     );
 
     assert_eq!(result, Err(Ok(ContractError::DuplicateRule)));
@@ -111,6 +113,7 @@ fn update_alert_duplicate_rules_returns_duplicate_rule_error() {
         &str(&env, "Alert"),
         &hash64(&env),
         &vec![&env, str(&env, "rule:transfer")],
+        &None,
     );
 
     let result = client.try_update_alert(
@@ -144,6 +147,7 @@ fn register_alert_non_duplicate_rules_succeeds() {
             str(&env, "rule:transfer"),
             str(&env, "rule:mint"), // different — OK
         ],
+        &None,
     );
 
     assert!(result.is_ok(), "distinct rules should be accepted");
@@ -164,6 +168,7 @@ fn register_alert_short_hash_returns_invalid_webhook_hash() {
         &str(&env, "Alert"),
         &str(&env, "tooshort"), // not 64 chars
         &vec![&env, str(&env, "rule:transfer")],
+        &None,
     );
 
     assert_eq!(result, Err(Ok(ContractError::InvalidWebhookHash)));
@@ -182,6 +187,7 @@ fn register_alert_empty_hash_returns_invalid_webhook_hash() {
         &str(&env, "Alert"),
         &str(&env, ""), // empty string
         &vec![&env, str(&env, "rule:transfer")],
+        &None,
     );
 
     assert_eq!(result, Err(Ok(ContractError::InvalidWebhookHash)));
@@ -203,6 +209,7 @@ fn register_alert_long_hash_returns_invalid_webhook_hash() {
         &str(&env, "Alert"),
         &long_hash,
         &vec![&env, str(&env, "rule:transfer")],
+        &None,
     );
 
     assert_eq!(result, Err(Ok(ContractError::InvalidWebhookHash)));
@@ -221,6 +228,7 @@ fn register_alert_valid_64_char_hash_succeeds() {
         &str(&env, "Alert"),
         &hash64(&env),
         &vec![&env, str(&env, "rule:transfer")],
+        &None,
     );
 
     assert!(result.is_ok(), "64-char hash must be accepted");
@@ -239,6 +247,7 @@ fn update_webhook_short_hash_returns_invalid_webhook_hash() {
         &str(&env, "Alert"),
         &hash64(&env),
         &vec![&env, str(&env, "rule:transfer")],
+        &None,
     );
 
     let result = client.try_update_webhook(
@@ -263,6 +272,7 @@ fn update_webhook_valid_hash_succeeds() {
         &str(&env, "Alert"),
         &hash64(&env),
         &vec![&env, str(&env, "rule:transfer")],
+        &None,
     );
 
     // A different valid 64-char hash
@@ -294,6 +304,7 @@ fn paginated_limit_exceeding_max_batch_size_is_clamped() {
             &label,
             &hash64(&env),
             &vec![&env, str(&env, "rule:transfer")],
+            &None,
         );
     }
 
@@ -327,6 +338,7 @@ fn paginated_owner_limit_exceeding_max_batch_size_is_clamped() {
             &label,
             &hash64(&env),
             &vec![&env, str(&env, "rule:transfer")],
+            &None,
         );
     }
 
@@ -356,6 +368,7 @@ fn paginated_limit_within_max_batch_size_is_exact() {
             &str(&env, "alert"),
             &hash64(&env),
             &vec![&env, str(&env, "rule:transfer")],
+            &None,
         );
     }
 

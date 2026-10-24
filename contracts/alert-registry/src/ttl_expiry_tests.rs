@@ -31,6 +31,7 @@ fn expired_alert_reads_as_none() {
         &String::from_str(&env, "alert"),
         &String::from_str(&env, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
         &vec![&env, String::from_str(&env, "rule:transfer")],
+        &None,
     );
     assert!(client.get_alert(&id).is_some());
 
@@ -50,6 +51,7 @@ fn expired_alert_is_not_counted_as_active() {
         &String::from_str(&env, "alert"),
         &String::from_str(&env, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
         &vec![&env, String::from_str(&env, "rule:transfer")],
+        &None,
     );
 
     advance_ledgers(&env, DEFAULT_TTL + 1);

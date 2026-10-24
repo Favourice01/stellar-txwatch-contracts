@@ -49,6 +49,7 @@ fn register_one(
         &String::from_str(env, "alert"),
         &String::from_str(env, "hash"),
         &vec![env, String::from_str(env, "rule:transfer")],
+        &None,
     )
 }
 

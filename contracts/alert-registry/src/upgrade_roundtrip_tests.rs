@@ -25,6 +25,7 @@ fn alerts_read_back_identically_through_every_index() {
         &String::from_str(&env, "persist"),
         &String::from_str(&env, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
         &vec![&env, String::from_str(&env, "rule:transfer")],
+        &None,
     );
 
     let by_id = client.get_alert(&id).unwrap();

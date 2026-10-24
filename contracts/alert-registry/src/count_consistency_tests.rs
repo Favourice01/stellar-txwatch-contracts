@@ -21,6 +21,7 @@ fn register(env: &Env, client: &AlertRegistryClient<'static>, owner: &Address) -
         &String::from_str(env, "alert"),
         &String::from_str(env, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
         &vec![env, String::from_str(env, "rule:transfer")],
+        &None,
     )
 }
 

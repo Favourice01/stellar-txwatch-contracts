@@ -52,6 +52,7 @@ fn unauthorized_when_a_stranger_removes_an_alert() {
         &s(&env, "alert"),
         &hash64(&env),
         &vec![&env, s(&env, "rule:transfer")],
+        &None,
     );
     let result = client.try_remove_alert(&stranger, &id);
     assert_eq!(result, Err(Ok(ContractError::Unauthorized)));
@@ -75,6 +76,7 @@ fn invalid_rule_descriptor_for_an_unknown_rule() {
         &s(&env, "alert"),
         &hash64(&env),
         &vec![&env, s(&env, "rule:bogus")],
+        &None,
     );
     assert_eq!(result, Err(Ok(ContractError::InvalidRuleDescriptor)));
 }
@@ -89,9 +91,9 @@ fn owner_alert_limit_exceeded_on_the_second_registration() {
     let owner = Address::generate(&env);
     let target = Address::generate(&env);
     let rules = vec![&env, s(&env, "rule:transfer")];
-    client.register_alert(&owner, &target, &s(&env, "first"), &hash64(&env), &rules);
+    client.register_alert(&owner, &target, &s(&env, "first"), &hash64(&env), &rules, &None);
 
-    let result = client.try_register_alert(&owner, &target, &s(&env, "second"), &hash64(&env), &rules);
+    let result = client.try_register_alert(&owner, &target, &s(&env, "second"), &hash64(&env), &rules, &None);
     assert_eq!(result, Err(Ok(ContractError::OwnerAlertLimitExceeded)));
 }
 
@@ -107,6 +109,7 @@ fn empty_rules_returns_empty_rules_error() {
         &s(&env, "alert"),
         &hash64(&env),
         &vec![&env],
+        &None,
     );
     assert_eq!(result, Err(Ok(ContractError::EmptyRules)));
 }
@@ -123,6 +126,7 @@ fn duplicate_rule_returns_duplicate_rule_error() {
         &s(&env, "alert"),
         &hash64(&env),
         &vec![&env, s(&env, "rule:transfer"), s(&env, "rule:transfer")],
+        &None,
     );
     assert_eq!(result, Err(Ok(ContractError::DuplicateRule)));
 }
@@ -139,6 +143,7 @@ fn invalid_webhook_hash_too_short() {
         &s(&env, "alert"),
         &s(&env, "tooshort"),
         &vec![&env, s(&env, "rule:transfer")],
+        &None,
     );
     assert_eq!(result, Err(Ok(ContractError::InvalidWebhookHash)));
 }
@@ -157,6 +162,7 @@ fn invalid_webhook_hash_too_long() {
         &s(&env, "alert"),
         &long_hash,
         &vec![&env, s(&env, "rule:transfer")],
+        &None,
     );
     assert_eq!(result, Err(Ok(ContractError::InvalidWebhookHash)));
 }
@@ -173,6 +179,7 @@ fn update_webhook_rejects_invalid_hash() {
         &s(&env, "alert"),
         &hash64(&env),
         &vec![&env, s(&env, "rule:transfer")],
+        &None,
     );
     let result = client.try_update_webhook(&owner, &id, &s(&env, "not-64-chars"));
     assert_eq!(result, Err(Ok(ContractError::InvalidWebhookHash)));

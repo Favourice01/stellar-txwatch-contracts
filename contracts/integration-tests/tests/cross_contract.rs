@@ -22,7 +22,7 @@ fn test_authorized_watcher_can_query_alert_registry_open_mode() {
 
     // Initialize watcher registry and authorize the watcher
     watcher_client.initialize(&admin);
-    watcher_client.register_watcher(&admin, &watcher);
+    watcher_client.register_watcher(&admin, &watcher, &None);
 
     // Register an alert in the alert registry
     let id = alert_client.register_alert(
@@ -30,7 +30,7 @@ fn test_authorized_watcher_can_query_alert_registry_open_mode() {
         &target,
         &str(&env, "Cross-contract alert"),
         &str(&env, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
-        &vec![&env, str(&env, "rule:transfer")],
+        &vec![&env, str(&env, "rule:transfer")], &None,
     );
 
     // Verify the watcher is authorized in the watcher registry
@@ -76,14 +76,14 @@ fn test_removed_watcher_loses_authorization_alert_data_intact() {
     let target = Address::generate(&env);
 
     watcher_client.initialize(&admin);
-    watcher_client.register_watcher(&admin, &watcher);
+    watcher_client.register_watcher(&admin, &watcher, &None);
 
     alert_client.register_alert(
         &owner,
         &target,
         &str(&env, "Alert"),
         &str(&env, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
-        &vec![&env, String::from_str(&env, "rule:transfer")],
+        &vec![&env, String::from_str(&env, "rule:transfer")], &None,
     );
 
     // Remove the watcher
@@ -112,7 +112,7 @@ fn test_watcher_gating_registered_watcher_can_read() {
 
     // Set up watcher registry
     watcher_client.initialize(&admin);
-    watcher_client.register_watcher(&admin, &watcher);
+    watcher_client.register_watcher(&admin, &watcher, &None);
 
     // Initialize alert registry and point it at the watcher registry
     alert_client.initialize(&admin).unwrap();
@@ -126,7 +126,7 @@ fn test_watcher_gating_registered_watcher_can_read() {
         &target,
         &String::from_str(&env, "Gated Alert"),
         &str(&env, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
-        &vec![&env, String::from_str(&env, "rule:transfer")],
+        &vec![&env, String::from_str(&env, "rule:transfer")], &None,
     );
 
     // Registered watcher can read
@@ -164,7 +164,7 @@ fn test_watcher_gating_unregistered_address_rejected() {
         &target,
         &String::from_str(&env, "Alert"),
         &str(&env, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
-        &vec![&env, String::from_str(&env, "rule:transfer")],
+        &vec![&env, String::from_str(&env, "rule:transfer")], &None,
     );
 
     assert_eq!(
@@ -187,7 +187,7 @@ fn test_watcher_gating_removed_watcher_loses_access() {
     let target = Address::generate(&env);
 
     watcher_client.initialize(&admin);
-    watcher_client.register_watcher(&admin, &watcher);
+    watcher_client.register_watcher(&admin, &watcher, &None);
 
     alert_client.initialize(&admin).unwrap();
     let watcher_contract_id = watcher_client.address.clone();
@@ -200,7 +200,7 @@ fn test_watcher_gating_removed_watcher_loses_access() {
         &target,
         &String::from_str(&env, "Alert"),
         &str(&env, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
-        &vec![&env, String::from_str(&env, "rule:transfer")],
+        &vec![&env, String::from_str(&env, "rule:transfer")], &None,
     );
 
     // Watcher can read before removal
@@ -237,7 +237,7 @@ fn test_watcher_gating_get_alerts_by_owner() {
     let target = Address::generate(&env);
 
     watcher_client.initialize(&admin);
-    watcher_client.register_watcher(&admin, &watcher);
+    watcher_client.register_watcher(&admin, &watcher, &None);
 
     alert_client.initialize(&admin).unwrap();
     let watcher_contract_id = watcher_client.address.clone();
@@ -250,7 +250,7 @@ fn test_watcher_gating_get_alerts_by_owner() {
         &target,
         &String::from_str(&env, "Alert"),
         &str(&env, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
-        &vec![&env, String::from_str(&env, "rule:transfer")],
+        &vec![&env, String::from_str(&env, "rule:transfer")], &None,
     );
 
     // Registered watcher can query by owner
@@ -287,7 +287,7 @@ fn test_remove_watcher_emits_event_with_correct_address() {
     let watcher = Address::generate(&env);
 
     watcher_client.initialize(&admin);
-    watcher_client.register_watcher(&admin, &watcher).unwrap();
+    watcher_client.register_watcher(&admin, &watcher, &None).unwrap();
     watcher_client.remove_watcher(&admin, &watcher).unwrap();
 
     let events = env.events().all();
@@ -319,7 +319,7 @@ fn test_remove_watcher_event_and_immediate_access_revocation() {
     let target = Address::generate(&env);
 
     watcher_client.initialize(&admin);
-    watcher_client.register_watcher(&admin, &watcher).unwrap();
+    watcher_client.register_watcher(&admin, &watcher, &None).unwrap();
 
     alert_client.initialize(&admin).unwrap();
     let watcher_contract_id = watcher_client.address.clone();
@@ -332,7 +332,7 @@ fn test_remove_watcher_event_and_immediate_access_revocation() {
         &target,
         &String::from_str(&env, "Alert"),
         &str(&env, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
-        &vec![&env, String::from_str(&env, "rule:transfer")],
+        &vec![&env, String::from_str(&env, "rule:transfer")], &None,
     );
 
     // Watcher can read before removal
@@ -383,7 +383,7 @@ fn test_bump_alert_by_third_party() {
         &target,
         &String::from_str(&env, "Long-lived Alert"),
         &str(&env, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
-        &vec![&env, String::from_str(&env, "rule:transfer")],
+        &vec![&env, String::from_str(&env, "rule:transfer")], &None,
     );
 
     let before = alert_client.get_alert(&id).unwrap();

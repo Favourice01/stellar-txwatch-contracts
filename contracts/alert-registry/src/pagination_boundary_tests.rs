@@ -33,6 +33,7 @@ fn setup() -> (Env, AlertRegistryClient<'static>, Address, Address) {
             &label,
             &String::from_str(&env, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
             &vec![&env, String::from_str(&env, "rule:transfer")],
+            &None,
         );
     }
     (env, client, querier, target)
@@ -115,6 +116,7 @@ fn limit_above_max_batch_size_is_clamped() {
             &label,
             &hash64(&env),
             &vec![&env, String::from_str(&env, "rule:transfer")],
+            &None,
         );
     }
 

@@ -88,7 +88,7 @@ fn test_pause_unpause_alert_admin() {
     client.initialize(&admin);
     let id = client.register_alert(
         &owner, &target, &str(&env, "a"), &hash64(&env),
-        &vec![&env, str(&env, "rule:transfer")],
+        &vec![&env, str(&env, "rule:transfer")], &None,
     );
     client.pause_alert(&admin, &id);
     assert!(!client.get_alert(&id).unwrap().active);
@@ -105,7 +105,7 @@ fn test_pause_alert_non_admin_rejected() {
     client.initialize(&admin);
     let id = client.register_alert(
         &owner, &target, &str(&env, "a"), &hash64(&env),
-        &vec![&env, str(&env, "rule:transfer")],
+        &vec![&env, str(&env, "rule:transfer")], &None,
     );
     assert_eq!(
         client.try_pause_alert(&owner, &id).unwrap_err().unwrap(),
@@ -122,7 +122,7 @@ fn test_get_active_alerts_paginated() {
     for _ in 0..3 {
         ids.push_back(client.register_alert(
             &owner, &target, &str(&env, "a"), &hash64(&env),
-            &vec![&env, str(&env, "rule:transfer")],
+            &vec![&env, str(&env, "rule:transfer")], &None,
         ));
     }
     client.update_alert(&owner, &ids.get(0).unwrap(), &vec![&env, str(&env, "rule:transfer")], &false);

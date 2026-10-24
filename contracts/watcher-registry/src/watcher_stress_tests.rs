@@ -34,7 +34,7 @@ fn many_admins_and_watchers_stay_consistent() {
     let mut watchers: Vec<Address> = Vec::new(&env);
     for _ in 0..WATCHERS {
         let w = Address::generate(&env);
-        client.register_watcher(&first_admin, &w);
+        client.register_watcher(&first_admin, &w, &None);
         watchers.push_back(w);
     }
     assert_eq!(client.get_watcher_count(), WATCHERS);

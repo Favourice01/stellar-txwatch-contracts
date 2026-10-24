@@ -43,6 +43,7 @@ fn register_emits_alert_register() {
         &String::from_str(&env, "alert"),
         &String::from_str(&env, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
         &vec![&env, String::from_str(&env, "rule:transfer")],
+        &None,
     );
     assert!(emitted(&env, "alert", "register"));
 }
@@ -56,6 +57,7 @@ fn remove_emits_alert_remove() {
         &String::from_str(&env, "alert"),
         &String::from_str(&env, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
         &vec![&env, String::from_str(&env, "rule:transfer")],
+        &None,
     );
     client.remove_alert(&owner, &id);
     assert!(emitted(&env, "alert", "remove"));
@@ -70,6 +72,7 @@ fn bump_emits_alert_bump() {
         &String::from_str(&env, "alert"),
         &String::from_str(&env, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
         &vec![&env, String::from_str(&env, "rule:transfer")],
+        &None,
     );
     client.bump_alert(&id, &1_000);
     assert!(emitted(&env, "alert", "bump"));
@@ -84,6 +87,7 @@ fn propose_webhook_emits_alert_wh_prop() {
         &String::from_str(&env, "alert"),
         &String::from_str(&env, "hash"),
         &vec![&env, String::from_str(&env, "rule:transfer")],
+        &None,
     );
     client.propose_webhook(&owner, &id, &String::from_str(&env, "new-hash")).unwrap();
     assert!(emitted(&env, "alert", "wh_prop"), "propose_webhook must emit (alert, wh_prop)");
@@ -99,6 +103,7 @@ fn confirm_webhook_emits_alert_webhook() {
         &String::from_str(&env, "alert"),
         &String::from_str(&env, "hash"),
         &vec![&env, String::from_str(&env, "rule:transfer")],
+        &None,
     );
     client.propose_webhook(&owner, &id, &String::from_str(&env, "new-hash")).unwrap();
     client.confirm_webhook(&owner, &id).unwrap();

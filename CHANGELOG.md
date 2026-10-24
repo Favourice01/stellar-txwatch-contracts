@@ -27,6 +27,16 @@ regenerated and any callers must handle the `Option` return value.
   latest network protocol version (#319).
 
 ### Added
+- **Multi-admin `AlertRegistry`**: new `add_admin(caller, new_admin)`, `remove_admin(caller, target_admin)`
+  and `get_admins()`. `remove_admin` refuses to remove the last admin (`LastAdmin`). Emits
+  `("admin", "add")` and `("admin", "remove")`. `transfer_admin` is deprecated: it now replaces the whole set.
+  **Migration:** the `ADMIN` instance key now stores `Vec<Address>`. Reads transparently accept the legacy
+  single-`Address` format, which is rewritten as a `Vec` on the next admin write; no manual migration is required.
+- `get_alerts_updated_since(target_contract, since, offset, limit)` for incremental watcher sync (O(n) scan).
+- `transfer_alert_ownership(owner, config_id, new_owner)`; respects the new owner's alert limit; emits `("alert", "transfer")`.
+- Optional `tags: Option<Vec<String>>` on `AlertConfig` (max 10 tags, 32 bytes each), a new trailing `tags`
+  argument on `register_alert`, and `update_tags`. New errors `TooManyTags`, `TagTooLong`. **Breaking:** the
+  `AlertConfig` layout and `register_alert` signature changed; regenerate TypeScript bindings.
 - **`AlertRegistry` default TTL is now 120 960 ledgers (~7 days)** (was 17 280, ~24 hours), so alerts are not archived after one day without a write (#249). Storage rent per alert rises accordingly; see `docs/ttl.md`.
 - `get_per_owner_alert_limit` unit test covering the three distinct cases: unset (`None`),
   set-to-0 (`Some(0)`), and set-to-n (`Some(n)l`).
