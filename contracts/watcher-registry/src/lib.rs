@@ -185,9 +185,12 @@ impl WatcherRegistry {
 
     /// Transfer the sole admin role to a new address (any existing admin may call this).
     ///
-    /// This replaces the **entire** admin set with a single new admin. Use
-    /// [`add_admin`] + [`remove_admin`] if you want to rotate one member of a
-    /// multi-admin set without losing the others.
+    /// This replaces the admin set with a single new admin, so it is only
+    /// allowed when exactly one admin exists (decision: option 1 of #236 —
+    /// enforce the single-admin invariant rather than silently dropping
+    /// admins). With more than one admin it returns
+    /// [`ContractError::MultipleAdminsExist`]; use [`add_admin`] +
+    /// [`remove_admin`] to rotate members of a multi-admin set.
     ///
     /// Emits an `("admin", "transfer")` event recording both the old and new admin.
     ///
@@ -202,6 +205,10 @@ impl WatcherRegistry {
         admin.require_auth();
         Self::assert_admin(&env, &admin)?;
         Self::assert_not_paused(&env)?;
+
+        if Self::load_admins(&env).len() > 1 {
+            return Err(ContractError::MultipleAdminsExist);
+        }
 
         let new_admins: Vec<Address> = vec![&env, new_admin.clone()];
         env.storage().instance().set(&DataKey::Admins, &new_admins);
@@ -232,11 +239,13 @@ impl WatcherRegistry {
         Self::assert_admin(&env, &admin)?;
         Self::assert_not_paused(&env)?;
 
-        let mut watchers = Self::load_watchers(&env);
-        for i in 0..watchers.len() {
-            if watchers.get(i).unwrap() == watcher {
-                return Ok(()); // already registered, idempotent
-            }
+        let label = label.unwrap_or_else(|| String::from_str(&env, ""));
+        if label.len() > MAX_LABEL_BYTES {
+            return Err(ContractError::LabelTooLong);
+        }
+
+        if env.storage().persistent().has(&DataKey::WatcherInfo(watcher.clone())) {
+            return Ok(()); // already registered, idempotent
         }
         if watchers.len() >= MAX_WATCHERS {
             return Err(ContractError::WatcherLimitExceeded);
@@ -360,7 +369,15 @@ impl WatcherRegistry {
                 break;
             }
         }
+        env.storage().persistent().remove(&DataKey::WatcherInfo(old_watcher.clone()));
         if !already_present {
+            let info = WatcherInfo {
+                address: new_watcher.clone(),
+                label: String::from_str(&env, ""),
+                registered_at: env.ledger().timestamp(),
+                registered_by: admin.clone(),
+            };
+            Self::save_info(&env, &info);
             updated.push_back(new_watcher.clone());
         } else {
             // old was removed but new was already there — net count decreases by 1
@@ -529,8 +546,9 @@ impl WatcherRegistry {
             let w = watchers.get(i).unwrap();
             env.events().publish(
                 (symbol_short!("watcher"), symbol_short!("remove")),
-                w,
+                w.clone(),
             );
+            env.storage().persistent().remove(&DataKey::WatcherInfo(w));
         }
 
         let empty: Vec<Address> = vec![&env];
@@ -550,6 +568,34 @@ impl WatcherRegistry {
     #[must_use]
     pub fn get_watchers(env: Env) -> Vec<Address> {
         Self::load_watchers(&env)
+    }
+
+    /// Get all registered watcher addresses. Read-only, no auth.
+    #[must_use]
+    pub fn get_all_watchers(env: Env) -> Vec<Address> {
+        Self::load_watchers(&env)
+    }
+
+    /// Get a page of watcher addresses. `limit` is capped at [`MAX_PAGE_LIMIT`].
+    /// Read-only, no auth.
+    #[must_use]
+    pub fn get_all_watchers_paginated(env: Env, offset: u32, limit: u32) -> Vec<Address> {
+        let watchers = Self::load_watchers(&env);
+        let limit = limit.min(MAX_PAGE_LIMIT);
+        let end = offset.saturating_add(limit).min(watchers.len());
+        let mut page: Vec<Address> = vec![&env];
+        let mut i = offset;
+        while i < end {
+            page.push_back(watchers.get(i).unwrap());
+            i += 1;
+        }
+        page
+    }
+
+    /// Get metadata for a registered watcher, or `None`. Read-only, no auth.
+    #[must_use]
+    pub fn get_watcher_info(env: Env, watcher: Address) -> Option<WatcherInfo> {
+        env.storage().persistent().get(&DataKey::WatcherInfo(watcher))
     }
 
     /// Get all current admin addresses.
@@ -617,6 +663,12 @@ impl WatcherRegistry {
     /// during low-activity periods.
     fn extend_instance_ttl(env: &Env) {
         env.storage().instance().extend_ttl(DEFAULT_TTL, DEFAULT_TTL);
+    }
+
+    fn save_info(env: &Env, info: &WatcherInfo) {
+        let key = DataKey::WatcherInfo(info.address.clone());
+        env.storage().persistent().set(&key, info);
+        env.storage().persistent().extend_ttl(&key, DEFAULT_TTL, DEFAULT_TTL);
     }
 
     fn increment_watcher_count(env: &Env) {
@@ -718,6 +770,71 @@ mod tests {
         let admin = Address::generate(&env);
         client.initialize(&admin);
         (env, admin, client)
+    }
+
+    #[test]
+    fn test_get_all_watchers_and_paginated() {
+        let (env, admin, client) = setup();
+        assert_eq!(client.get_all_watchers().len(), 0);
+        assert_eq!(client.get_all_watchers_paginated(&0, &10).len(), 0);
+        let w1 = Address::generate(&env);
+        client.register_watcher(&admin, &w1, &None);
+        assert_eq!(client.get_all_watchers(), vec![&env, w1.clone()]);
+        let w2 = Address::generate(&env);
+        let w3 = Address::generate(&env);
+        client.register_watcher(&admin, &w2, &None);
+        client.register_watcher(&admin, &w3, &None);
+        assert_eq!(client.get_all_watchers().len(), 3);
+        assert_eq!(client.get_all_watchers_paginated(&1, &1), vec![&env, w2.clone()]);
+        assert_eq!(client.get_all_watchers_paginated(&2, &50), vec![&env, w3]);
+        assert_eq!(client.get_all_watchers_paginated(&9, &5).len(), 0);
+    }
+
+    #[test]
+    fn test_watcher_info_label() {
+        let (env, admin, client) = setup();
+        let w = Address::generate(&env);
+        let w2 = Address::generate(&env);
+        client.register_watcher(&admin, &w, &Some(String::from_str(&env, "node-1")));
+        client.register_watcher(&admin, &w2, &None);
+        let info = client.get_watcher_info(&w).unwrap();
+        assert_eq!(info.label, String::from_str(&env, "node-1"));
+        assert_eq!(info.registered_by, admin);
+        assert_eq!(client.get_watcher_info(&w2).unwrap().label, String::from_str(&env, ""));
+        client.remove_watcher(&admin, &w);
+        assert!(client.get_watcher_info(&w).is_none());
+        assert!(!client.is_authorized(&w));
+    }
+
+    #[test]
+    fn test_label_too_long_rejected() {
+        let (env, admin, client) = setup();
+        let w = Address::generate(&env);
+        let long = String::from_bytes(&env, &[b'a'; 65]);
+        assert_eq!(
+            client.try_register_watcher(&admin, &w, &Some(long)),
+            Err(Ok(ContractError::LabelTooLong))
+        );
+    }
+
+    #[test]
+    fn test_transfer_admin_rejected_with_multiple_admins() {
+        let (env, admin, client) = setup();
+        let second = Address::generate(&env);
+        client.add_admin(&admin, &second);
+        assert_eq!(
+            client.try_transfer_admin(&admin, &Address::generate(&env)),
+            Err(Ok(ContractError::MultipleAdminsExist))
+        );
+        assert_eq!(client.get_admins().len(), 2);
+    }
+
+    #[test]
+    fn test_get_admins_after_add() {
+        let (env, admin, client) = setup();
+        let second = Address::generate(&env);
+        client.add_admin(&admin, &second);
+        assert_eq!(client.get_admins(), vec![&env, admin, second]);
     }
 
     // 1. Happy path — register and check authorization

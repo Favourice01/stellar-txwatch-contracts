@@ -39,7 +39,9 @@ Adds an address to the authorized watcher set. Idempotent — registering an alr
 
 **Returns:** nothing
 
-**Panics:** `"unauthorized"` if `admin` does not match the stored admin.
+**Errors:** `Unauthorized` if `admin` is not an admin; `MultipleAdminsExist` (6) if more than one admin exists.
+
+**Decision (#236):** `transfer_admin` is only allowed when exactly one admin exists, so no admin is ever dropped silently. With several admins, rotate using `add_admin` + `remove_admin` (each emits an auditable event).
 
 ---
 
@@ -214,3 +216,35 @@ get_admins(env) -> Result<Vec<Address>, ContractError>
 ```
 
 Returns the admin set. Read-only.
+
+### `register_watcher` label and `WatcherInfo`
+
+```text
+register_watcher(env, admin, watcher, label: Option<String>) -> Result<(), ContractError>
+```
+
+`label` is optional (max 64 bytes, defaults to empty; longer returns `LabelTooLong` = 7). Each watcher gets a `WatcherInfo { address, label, registered_at, registered_by }` entry in persistent storage keyed by address. The `Watchers` vec stays as the enumeration index and `is_authorized` is an O(1) lookup.
+
+### `get_watcher_info`
+
+```text
+get_watcher_info(env, watcher: Address) -> Option<WatcherInfo>
+```
+
+Read-only, no auth. Returns `None` if the watcher is not registered.
+
+### `get_all_watchers`
+
+```text
+get_all_watchers(env) -> Vec<Address>
+```
+
+Read-only, no auth. Returns every registered watcher address.
+
+### `get_all_watchers_paginated`
+
+```text
+get_all_watchers_paginated(env, offset: u32, limit: u32) -> Vec<Address>
+```
+
+Read-only, no auth. `limit` is capped at `MAX_PAGE_LIMIT` (50). Returns an empty vec when `offset` is past the end.

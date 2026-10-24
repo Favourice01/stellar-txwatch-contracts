@@ -19,7 +19,19 @@ export type OwnerAlertConfig = {
   enabled: boolean;
 };
 
+export type WatcherInfo = {
+  address: string;
+  label: string;
+  registered_at: bigint;
+  registered_by: string;
+};
+
 export interface Client {
+  register_watcher({ admin, watcher, label }: { admin: string; watcher: string; label?: string }): Promise<void>;
+  get_watcher_info({ watcher }: { watcher: string }): Promise<WatcherInfo | undefined>;
+  get_all_watchers(): Promise<string[]>;
+  get_all_watchers_paginated({ offset, limit }: { offset: number; limit: number }): Promise<string[]>;
+  get_admins(): Promise<string[]>;
   get_per_owner_alert_limit(): Promise<number | undefined>;
   get_owner_alert_config({ owner }: { owner: string }): Promise<OwnerAlertConfig | undefined>;
   set_per_owner_alert_limit({ limit }: { limit: number }): Promise<void>;
